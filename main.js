@@ -12,8 +12,9 @@ let
     angle = 0,
     lastTime = 0,
     lightPosition = [-50, 50, -14],
+    lp=mat4.create(),
     shininess = 200,
-    distance = -100;
+    distance = -70;
 
 const VS = `#version 300 es
 precision mediump float;
@@ -225,12 +226,13 @@ function draw() {
                 mat4.scale(modelViewMatrix, modelViewMatrix,[4,1,4]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [3, 20, 0]);
             }
-
-            // If object is the light, we update its position
-            if (object.alias === 'light') {
-                const lightPosition = gl.getUniform(program, program.uLightPosition);
-                mat4.translate(modelViewMatrix, modelViewMatrix, lightPosition);
-            }
+            
+            mat4.identity(lp);
+            mat4.translate(lp, lp,lightPosition);
+            mat4.rotate(lp, lp, 30 * Math.PI / 180, [1, 0, 0]);
+            mat4.rotate(lp, lp, -angle * Math.PI / 180, [0, 1, 0]);
+            
+            // gl.uniform3fv(program.uLightPosition, lp);
 
             mat4.copy(normalMatrix, modelViewMatrix);
             mat4.invert(normalMatrix, normalMatrix);
