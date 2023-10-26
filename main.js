@@ -229,10 +229,10 @@ function draw() {
             
             mat4.identity(lp);
             mat4.translate(lp, lp,lightPosition);
-            mat4.rotate(lp, lp, 30 * Math.PI / 180, [1, 0, 0]);
-            mat4.rotate(lp, lp, -angle * Math.PI / 180, [0, 1, 0]);
-            
-            // gl.uniform3fv(program.uLightPosition, lp);
+            // mat4.rotate(lp, lp, 30 * Math.PI / 180, [1, 0, 0]);
+            mat4.rotate(lp, lp, -angle * Math.PI/180 , [0, 1, 0]);
+            // console.log(lp);
+            gl.uniform3fv(program.uLightPosition, lp);
 
             mat4.copy(normalMatrix, modelViewMatrix);
             mat4.invert(normalMatrix, normalMatrix);
@@ -373,34 +373,19 @@ function init() {
 
 function initControls() {
     utils.configureControls({
-        'Sphere Color': {
-            value: [0, 255, 0],
-            onChange: v => getObject('sphere').diffuse = [...utils.normalizeColor(v), 1.0]
-        },
-        'Cone Color': {
+        'Top Color': {
             value: [235, 0, 210],
             onChange: v => getObject('cone').diffuse = [...utils.normalizeColor(v), 1.0]
+        },
+        'Plane Color': {
+            value: [145, 145, 189],
+            onChange: v => getObject('cylinder6').diffuse = [...utils.normalizeColor(v), 1.0]
         },
         Shininess: {
             value: shininess,
             min: 1, max: 50, step: 0.1,
             onChange: v => gl.uniform1f(program.uShininess, v)
         },
-        // Spread all values from the reduce onto the controls
-        ...['Translate X', 'Translate Y', 'Translate Z'].reduce((result, name, i) => {
-            result[name] = {
-                value: lightPosition[i],
-                min: -50, max: 50, step: -0.1,
-                onChange(v, state) {
-                    gl.uniform3fv(program.uLightPosition, [
-                        state['Translate X'],
-                        state['Translate Y'],
-                        state['Translate Z']
-                    ]);
-                }
-            };
-            return result;
-        }, {}),
         Distance: {
             value: distance,
             min: -200, max: -50, step: 0.1,
