@@ -33,7 +33,7 @@ out vec3 vEyeVector;
 
 void main(void) {
     vec4 vertex = uModelViewMatrix * vec4(aVertexPosition, 1.0);
-    vec4 light = uModelViewMatrix * vec4(uLightPosition, 1.0);
+    vec4 light = vec4(uLightPosition, 1.0);
 
     // Set varyings to be used inside of fragment shader
     vNormal = vec3(uNormalMatrix * vec4(aVertexNormal, 1.0));
@@ -230,7 +230,7 @@ function draw() {
             mat4.identity(lp);
             mat4.translate(lp, lp,lightPosition);
             // mat4.rotate(lp, lp, 30 * Math.PI / 180, [1, 0, 0]);
-            mat4.rotate(lp, lp, -angle * Math.PI/180 , [0, 1, 0]);
+            mat4.rotate(lp, lp, angle * Math.PI/180 , [0, 1, 0]);
             // console.log(lp);
             gl.uniform3fv(program.uLightPosition, lp);
 
