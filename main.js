@@ -11,7 +11,7 @@ let
     objects = [],
     angle = 0,
     lastTime = 0,
-    lightPosition = [4.5, 3, 15],
+    lightPosition = [-50, 50, -14],
     shininess = 200,
     distance = -100;
 
@@ -43,7 +43,7 @@ void main(void) {
 }
 `
 
-const FS=`#version 300 es
+const FS = `#version 300 es
 precision mediump float;
 
 uniform vec4 uLightAmbient;
@@ -106,7 +106,7 @@ function initProgram() {
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
         console.error(gl.getShaderInfoLog(vertexShader));
         return null;
-      }
+    }
 
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fragmentShader, FS);
@@ -114,7 +114,7 @@ function initProgram() {
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
         console.error(gl.getShaderInfoLog(fragmentShader));
         return null;
-      }
+    }
 
 
     program = gl.createProgram();
@@ -168,9 +168,63 @@ function draw() {
         objects.forEach(object => {
             // We will cover these operations in later chapters
             mat4.identity(modelViewMatrix);
+            
             mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, distance]);
             mat4.rotate(modelViewMatrix, modelViewMatrix, 30 * Math.PI / 180, [1, 0, 0]);
             mat4.rotate(modelViewMatrix, modelViewMatrix, angle * Math.PI / 180, [0, 1, 0]);
+            if(object.alias==='cylinder1'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[0.3,2,0.3]);
+                // mat4.translate(modelViewMatrix, modelViewMatrix, [3, 0, 0]);
+
+            }
+            if(object.alias==='cylinder2'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [180, 0, 0]);
+
+            }
+            if(object.alias==='cylinder3'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-180, 0, 0]);
+
+            }
+            if(object.alias==='cylinder4'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 180]);
+
+            }
+            if(object.alias==='cylinder5'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -180]);
+
+            }
+            if(object.alias==='cylinder6'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,0.1,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 0]);
+
+            }
+
+            if(object.alias==='cube1'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle/2)+2, 4.5]);
+            }
+            if(object.alias==='cube2'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-4.5, Math.sin(angle/2 + Math.PI/2)+2, 0]);
+            }
+            if(object.alias==='cube3'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle/2+ Math.PI)+2, -4.5]);
+            }
+            if(object.alias==='cube4'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [4.5, Math.sin(angle/2+ Math.PI/2*3)+2, 0]);
+            }
+
+
+            if(object.alias==='cone'){
+                mat4.scale(modelViewMatrix, modelViewMatrix,[4,1,4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [3, 20, 0]);
+            }
 
             // If object is the light, we update its position
             if (object.alias === 'light') {
@@ -277,10 +331,33 @@ function loadObject(filePath, alias) {
 
 // Load each individual object
 function load() {
-    loadObject('/models/plane.json', 'plane');
+    // loadObject('/models/cylinder.json', 'cylinder');
+
+
+
+    // loadObject('/models/plane.json', 'plane');
     loadObject('/models/cone.json', 'cone');
-    loadObject('/models/sphere1.json', 'sphere');
-    loadObject('/models/sphere2.json', 'light');
+    // loadObject('/models/sphere1.json', 'sphere');
+    loadObject('/models/cylinder.json', 'cylinder1');
+    loadObject('/models/cylinder.json', 'cylinder2');
+    loadObject('/models/cylinder.json', 'cylinder3');
+    loadObject('/models/cylinder.json', 'cylinder4');
+    loadObject('/models/cylinder.json', 'cylinder5');
+    loadObject('/models/cylinder.json', 'cylinder6');
+    // loadObject('/models/ball.json', 'sphere');
+
+    loadObject('/models/cube-simple.json', 'cube1');
+    loadObject('/models/cube-simple.json', 'cube2');
+
+    loadObject('/models/cube-simple.json', 'cube3');
+
+    loadObject('/models/cube-simple.json', 'cube4');
+
+
+
+
+    // loadObject('/models/sphere2.json', 'light');
+
 }
 
 function init() {
