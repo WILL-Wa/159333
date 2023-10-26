@@ -5,6 +5,11 @@
 let
     gl,
     program,
+    skyprogram,
+    positionLocation,
+    positionBuffer,
+    viewDirectionProjectionInverseLocation,
+    skyboxLocation,
     modelViewMatrix = mat4.create(),
     projectionMatrix = mat4.create(),
     normalMatrix = mat4.create(),
@@ -12,9 +17,40 @@ let
     angle = 0,
     lastTime = 0,
     lightPosition = [-50, 50, -14],
-    lp=mat4.create(),
+    lp = mat4.create(),
     shininess = 200,
     distance = -70;
+
+const skyVS = `attribute vec4 a_position;
+varying vec4 v_position;
+void main() {
+  v_position = a_position;
+  gl_Position = a_position;
+  gl_Position.z = 1.0;
+}`
+
+const skyFS = `precision mediump float;
+uniform samplerCube u_skybox;
+uniform mat4 u_viewDirectionProjectionInverse;
+ 
+varying vec4 v_position;
+void main() {
+  vec4 t = u_viewDirectionProjectionInverse * v_position;
+  gl_FragColor = textureCube(u_skybox, normalize(t.xyz / t.w));
+}`
+
+function setGeometry(gl) {
+    var positions = new Float32Array(
+        [
+            -1, -1,
+            1, -1,
+            -1, 1,
+            -1, 1,
+            1, -1,
+            1, 1,
+        ]);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+}
 
 const VS = `#version 300 es
 precision mediump float;
@@ -99,6 +135,102 @@ function initProgram() {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
 
+    // configure skybox program
+    const skyvertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(skyvertexShader, skyVS);
+    gl.compileShader(skyvertexShader);
+    if (!gl.getShaderParameter(skyvertexShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(skyvertexShader));
+        return null;
+    }
+
+    const skyfragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(skyfragmentShader, skyFS);
+    gl.compileShader(skyfragmentShader);
+    if (!gl.getShaderParameter(skyfragmentShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(skyfragmentShader));
+        return null;
+    }
+
+    skyprogram = gl.createProgram();
+    gl.attachShader(skyprogram, skyvertexShader);
+    gl.attachShader(skyprogram, skyfragmentShader);
+    gl.linkProgram(skyprogram);
+
+    positionLocation = gl.getAttribLocation(skyprogram, "a_position");
+
+    skyboxLocation = gl.getUniformLocation(skyprogram, "u_skybox");
+    viewDirectionProjectionInverseLocation =
+        gl.getUniformLocation(skyprogram, "u_viewDirectionProjectionInverse");
+
+    // Create a buffer for positions
+    positionBuffer = gl.createBuffer();
+    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // Put the positions in the buffer
+    setGeometry(gl);
+
+    // Create a texture.
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+    const faceInfos = [
+        {
+            target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+            url: 'images/4161612.jpg',
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+            url: 'images/4161612.jpg',
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+            url: 'images/4161612.jpg',
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+            url: 'images/4161612.jpg',
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+            url: 'images/4161612.jpg',
+        },
+        {
+            target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+            url: 'images/4161612.jpg',
+        },
+    ];
+    faceInfos.forEach((faceInfo) => {
+        const { target, url } = faceInfo;
+
+        // Upload the canvas to the cubemap face.
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const width = 512;
+        const height = 512;
+        const format = gl.RGBA;
+        const type = gl.UNSIGNED_BYTE;
+
+        // setup each face so it's immediately renderable
+        gl.texImage2D(target, level, internalFormat, width, height, 0, format, type, null);
+
+        // Asynchronously load an image
+        const image = new Image();
+        image.src = url;
+        image.addEventListener('load', function () {
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+            gl.texImage2D(target, level, internalFormat, format, type, image);
+            gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        });
+    });
+    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+
+
+
+
 
     // Configure `program`
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -159,7 +291,14 @@ function initLights() {
 
 function draw() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+
+
+
+
 
     mat4.perspective(projectionMatrix, 45 * (Math.PI / 180), gl.canvas.width / gl.canvas.height, 0.1, 1000);
 
@@ -169,68 +308,108 @@ function draw() {
         objects.forEach(object => {
             // We will cover these operations in later chapters
             mat4.identity(modelViewMatrix);
-            
+
             mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, distance]);
             mat4.rotate(modelViewMatrix, modelViewMatrix, 30 * Math.PI / 180, [1, 0, 0]);
             mat4.rotate(modelViewMatrix, modelViewMatrix, angle * Math.PI / 180, [0, 1, 0]);
-            if(object.alias==='cylinder1'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[0.3,2,0.3]);
+
+            if (object.alias === 'cylinder1') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.3, 2, 0.3]);
                 // mat4.translate(modelViewMatrix, modelViewMatrix, [3, 0, 0]);
 
             }
-            if(object.alias==='cylinder2'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+            if (object.alias === 'cylinder2') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.1, 1.5, 0.1]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [180, 0, 0]);
 
             }
-            if(object.alias==='cylinder3'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+            if (object.alias === 'cylinder3') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.1, 1.5, 0.1]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [-180, 0, 0]);
 
             }
-            if(object.alias==='cylinder4'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+            if (object.alias === 'cylinder4') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.1, 1.5, 0.1]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 180]);
 
             }
-            if(object.alias==='cylinder5'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[0.1,1.5,0.1]);
+            if (object.alias === 'cylinder5') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.1, 1.5, 0.1]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -180]);
 
             }
-            if(object.alias==='cylinder6'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,0.1,4]);
+            if (object.alias === 'cylinder6') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 0.1, 4]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 0]);
 
             }
 
-            if(object.alias==='cube1'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle/2)+2, 4.5]);
+            if (object.alias === 'cube1') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle / 2) + 2, 4.5]);
             }
-            if(object.alias==='cube2'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [-4.5, Math.sin(angle/2 + Math.PI/2)+2, 0]);
+            if (object.alias === 'cube2') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-4.5, Math.sin(angle / 2 + Math.PI / 2) + 2, 0]);
             }
-            if(object.alias==='cube3'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle/2+ Math.PI)+2, -4.5]);
+            if (object.alias === 'cube3') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle / 2 + Math.PI) + 2, -4.5]);
             }
-            if(object.alias==='cube4'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,4,4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [4.5, Math.sin(angle/2+ Math.PI/2*3)+2, 0]);
+            if (object.alias === 'cube4') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [4.5, Math.sin(angle / 2 + Math.PI / 2 * 3) + 2, 0]);
             }
 
 
-            if(object.alias==='cone'){
-                mat4.scale(modelViewMatrix, modelViewMatrix,[4,1,4]);
+            if (object.alias === 'cone') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 1, 4]);
                 mat4.translate(modelViewMatrix, modelViewMatrix, [3, 20, 0]);
             }
-            
+
+            if (object.alias === 'wall1') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [2, 1, 2]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, -angle * Math.PI / 180, [0, 1, 0]);
+
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 14]);
+            }
+            if (object.alias === 'wall2') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [2, 1, 2]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, -angle * Math.PI / 180, [0, 1, 0]);
+
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -14]);
+            }
+            if (object.alias === 'wall3') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [2, 1, 2]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 1, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, -angle * Math.PI / 180, [0, 1, 0]);
+
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, 14]);
+
+            }
+            if (object.alias === 'wall4') {
+                mat4.scale(modelViewMatrix, modelViewMatrix, [2, 1, 2]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 1, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, -angle * Math.PI / 180, [0, 1, 0]);
+
+                mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -14]);
+            }
+            // if (object.alias === 'wall5') {
+            //     mat4.scale(modelViewMatrix, modelViewMatrix, [40, 0.01, 1]);
+            //     mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 1, 0]);
+            //     // mat4.rotate(modelViewMatrix, modelViewMatrix, -angle * Math.PI / 180, [0, 1, 0]);
+
+            //     // mat4.translate(modelViewMatrix, modelViewMatrix, [0, -5, 0]);
+            // }
+
+
+
+            gl.useProgram(program);
+
             mat4.identity(lp);
-            mat4.translate(lp, lp,lightPosition);
+            mat4.translate(lp, lp, lightPosition);
             // mat4.rotate(lp, lp, 30 * Math.PI / 180, [1, 0, 0]);
-            mat4.rotate(lp, lp, angle * Math.PI/180 , [0, 1, 0]);
+            mat4.rotate(lp, lp, angle * Math.PI / 180, [0, 1, 0]);
             // console.log(lp);
             gl.uniform3fv(program.uLightPosition, lp);
 
@@ -258,6 +437,43 @@ function draw() {
             gl.bindVertexArray(null);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+
+
+            gl.enable(gl.CULL_FACE);
+            gl.enable(gl.DEPTH_TEST);
+            gl.useProgram(skyprogram);
+            gl.enableVertexAttribArray(positionLocation);
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            var size = 2;          // 2 components per iteration
+            var type = gl.FLOAT;   // the data is 32bit floats
+            var normalize = false; // don't normalize the data
+            var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+            var offset = 0;        // start at the beginning of the buffer
+            gl.vertexAttribPointer(
+                positionLocation, size, type, normalize, stride, offset);
+
+
+            var viewDirectionProjectionInverseMatrix = mat4.create();
+            mat4.rotate(viewDirectionProjectionInverseMatrix, projectionMatrix, angle * Math.PI / 180, [0, 1, 0]);
+            mat4.invert(viewDirectionProjectionInverseMatrix, viewDirectionProjectionInverseMatrix);
+            gl.uniformMatrix4fv(
+                viewDirectionProjectionInverseLocation, false,
+                viewDirectionProjectionInverseMatrix);
+
+            gl.uniform1i(skyboxLocation, 0);
+
+            // let our quad pass the depth test at 1.0
+            gl.depthFunc(gl.LEQUAL);
+
+            // Draw the geometry.
+            // gl.disable(gl.gl.CULL_FACE
+            gl.drawArrays(gl.TRIANGLES, 0, 1 * 6);
+            gl.bindVertexArray(null);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+            gl.useProgram(program);
+
         });
     }
     // We catch the `error` and simply output to the screen for testing/debugging purposes
@@ -333,11 +549,9 @@ function loadObject(filePath, alias) {
 
 // Load each individual object
 function load() {
-    // loadObject('/models/cylinder.json', 'cylinder');
-
-
-
     // loadObject('/models/plane.json', 'plane');
+
+
     loadObject('/models/cone.json', 'cone');
     // loadObject('/models/sphere1.json', 'sphere');
     loadObject('/models/cylinder.json', 'cylinder1');
@@ -354,6 +568,13 @@ function load() {
     loadObject('/models/cube-simple.json', 'cube3');
 
     loadObject('/models/cube-simple.json', 'cube4');
+    loadObject('/models/wall.json', 'wall1');
+    loadObject('/models/wall.json', 'wall2');
+    loadObject('/models/wall.json', 'wall3');
+    loadObject('/models/wall.json', 'wall4');
+    // loadObject('/models/wall.json', 'wall5');
+
+
 
 
 
