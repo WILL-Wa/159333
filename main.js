@@ -345,20 +345,28 @@ function draw() {
             }
 
             if (object.alias === 'cube1') {
-                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle / 2) + 2, 4.5]);
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.5, 0.5,0.5]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [-1, 0, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 0, 0]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-36,0 , 2*Math.sin(angle / 2) + 4]);
             }
             if (object.alias === 'cube2') {
-                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [-4.5, Math.sin(angle / 2 + Math.PI / 2) + 2, 0]);
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.5, 0.5,0.5]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [-1, 0, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 0, 1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-36, 0, 2*Math.sin(angle / 2 + Math.PI / 2) + 4]);
             }
             if (object.alias === 'cube3') {
-                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [0, Math.sin(angle / 2 + Math.PI) + 2, -4.5]);
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.5, 0.5,0.5]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [-1, 0, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [0, 0, -1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-36, 0, 2*Math.sin(angle / 2 - Math.PI / 2) + 4]);
             }
             if (object.alias === 'cube4') {
-                mat4.scale(modelViewMatrix, modelViewMatrix, [4, 4, 4]);
-                mat4.translate(modelViewMatrix, modelViewMatrix, [4.5, Math.sin(angle / 2 + Math.PI / 2 * 3) + 2, 0]);
+                mat4.scale(modelViewMatrix, modelViewMatrix, [0.5, 0.5,0.5]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 90 * Math.PI / 180, [-1, 0, 0]);
+                mat4.rotate(modelViewMatrix, modelViewMatrix, 180 * Math.PI / 180, [0, 0, 1]);
+                mat4.translate(modelViewMatrix, modelViewMatrix, [-36, 0, Math.sin(angle / 2 + 2*Math.PI / 2 * 3) + 4]);
             }
 
 
@@ -549,7 +557,7 @@ function loadObject(filePath, alias) {
 
 // Load each individual object
 function load() {
-    // loadObject('/models/plane.json', 'plane');
+    // loadObject('/models/horse.json', 'horse');
 
 
     loadObject('/models/cone.json', 'cone');
@@ -562,12 +570,12 @@ function load() {
     loadObject('/models/cylinder.json', 'cylinder6');
     // loadObject('/models/ball.json', 'sphere');
 
-    loadObject('/models/cube-simple.json', 'cube1');
-    loadObject('/models/cube-simple.json', 'cube2');
+    loadObject('/models/horse.json', 'cube1');
+    loadObject('/models/horse.json', 'cube2');
 
-    loadObject('/models/cube-simple.json', 'cube3');
+    loadObject('/models/horse.json', 'cube3');
 
-    loadObject('/models/cube-simple.json', 'cube4');
+    loadObject('/models/horse.json', 'cube4');
     loadObject('/models/wall.json', 'wall1');
     loadObject('/models/wall.json', 'wall2');
     loadObject('/models/wall.json', 'wall3');
