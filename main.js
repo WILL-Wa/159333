@@ -288,6 +288,46 @@ function init() {
     initLights();
     load();
     render();
+
+    initControls();
+}
+
+function initControls() {
+    utils.configureControls({
+        'Sphere Color': {
+            value: [0, 255, 0],
+            onChange: v => getObject('sphere').diffuse = [...utils.normalizeColor(v), 1.0]
+        },
+        'Cone Color': {
+            value: [235, 0, 210],
+            onChange: v => getObject('cone').diffuse = [...utils.normalizeColor(v), 1.0]
+        },
+        Shininess: {
+            value: shininess,
+            min: 1, max: 50, step: 0.1,
+            onChange: v => gl.uniform1f(program.uShininess, v)
+        },
+        // Spread all values from the reduce onto the controls
+        ...['Translate X', 'Translate Y', 'Translate Z'].reduce((result, name, i) => {
+            result[name] = {
+                value: lightPosition[i],
+                min: -50, max: 50, step: -0.1,
+                onChange(v, state) {
+                    gl.uniform3fv(program.uLightPosition, [
+                        state['Translate X'],
+                        state['Translate Y'],
+                        state['Translate Z']
+                    ]);
+                }
+            };
+            return result;
+        }, {}),
+        Distance: {
+            value: distance,
+            min: -200, max: -50, step: 0.1,
+            onChange: v => distance = v
+        }
+    });
 }
 
 window.onload = init;
